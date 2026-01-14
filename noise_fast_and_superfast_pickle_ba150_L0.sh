@@ -33,7 +33,7 @@ fi
 # initial set up, and archiving config and script stuff
 ####################################################################
 
-# Don't fiddle with tes bias when using mce_reconfig in 'really_freeze_servo.py'
+# Don't fiddle with tes bias when using mce_reconfig in 'freeze_servo.py'
 mas_param set tes_bias_do_reconfig 0
 mas_param set config_sync 0
 # Build row_deselect args dynamically (max_rows zeros)
@@ -258,7 +258,7 @@ do
         ####################################################################
         sleep 1
 
-        python ~/rshi/noise/really_freeze_servo_ba150.py -r $row --o --save
+        python ~/rshi/noise/freeze_servo_pickle_ba150.py -r $row --o --save
 
         sleep 2
         fb_val=(`command_reply rb sq1 fb_const`)
