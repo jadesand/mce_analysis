@@ -1,0 +1,24 @@
+#!/bin/bash                                                                     
+
+if [ "$#" -lt "1" ]; then
+    echo "Usage:   run_mce_raw_acq_1col <RC> <column> <data file suffix> [ <nsamples> ]"
+    echo
+    echo "  RC                is 1,2,3, or 4"
+    echo "  column            is 0,...,7"
+    echo "  data file suffix  will be appended to the filename"
+    echo "  nsamples         number of 50 MHz samples to take (default is 65536)"
+    exit 1
+fi
+
+#[$1==RC]
+#[$2==column]
+#[#3==data file suffix]
+#[#4==nsamples - optional, default 65536]
+
+rc=$1
+col=$2
+suffix=$3
+nsamples=${4:-65536}
+
+echo "acquiring 50 MHz data on rc${rc} column ${col} ..."
+mce_raw_acq_1col ${rc} ${col} ${nsamples} "rc${rc}_c${col}_${suffix}"
