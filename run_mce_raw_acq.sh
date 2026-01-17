@@ -66,7 +66,7 @@ do
     do
         for ((col=0;col<${#columns[@]};col+=1)); do
             suffix="${idx}"
-            "$(dirname "$0")/run_mce_raw_acq_1col.sh" ${rc} ${columns[$col]} ${suffix} ${nsamples}
+            "$(dirname "$0")/run_mce_raw_acq_1col.sh" ${rc} ${columns[$col]} ${suffix} ${nsamples} ${dirname}
 
             # RC info to log
             FPGA_TEMP=$(mce_status -s | grep "rc${rc}" | grep fpga_temp | awk '{print $4}')
