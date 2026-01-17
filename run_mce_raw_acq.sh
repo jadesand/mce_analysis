@@ -16,8 +16,13 @@ fi
 # [$3==1, 2,3 ; RCs to take data on - optional, otherwise set default_rcs internally]
 # 20260116 copied from b3tower3:/home/bicep3/shawn/mce_scripts/go_raw_all.sh
 
+
+
 CTIME_FOR_LOGFILE=`date +%s`
-LOGFILE=$MAS_DATA/raw_${CTIME_FOR_LOGFILE}.txt
+dirname=raw_${CTIME_FOR_LOGFILE}
+mkdir -p $MAS_DATA/$dirname
+
+LOGFILE=$MAS_DATA/$dirname/log.txt
 echo "OUTFILE=${LOGFILE}"
 
 ndatasets=$1
@@ -73,7 +78,7 @@ do
             TUNE=$(basename "$(readlink -f "$MAS_DATA_ROOT/last_squid_tune")")	
             TUNE=${TUNE%.sqtune}
             LASTRUNFILE=$(find "$MAS_DATA" -maxdepth 1 -name "*.run" -printf '%T@ %f\n' | sort -n | tail -1 | cut -d' ' -f2)
-            DATEDIR=$(basename "$(readlink -f "$MAS_DATA")")
+            DATEDIR=$(basename "$(readlink -f "$MAS_DATA/$dirname")")
             x=${TUNE}"\t${RCINFO}\t${rc}\t${columns[$col]}\t${DATEDIR}\t${LASTRUNFILE%.run}"
             echo -e ${x} >> ${LOGFILE}
         done
