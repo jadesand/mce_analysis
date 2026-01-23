@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This is the script to take fast and superfast noise data in superconducting, mid-transition and normal in BA2.
+# This is the script to take normal, fast and superfast noise data in superconducting, mid-transition and normal in SLAC Pickle for BA module L0.
 # Most of the content has been taken from an old Bicep2 script for the same purpose, and adapted.
 #
 # SF - 2023-01-21
