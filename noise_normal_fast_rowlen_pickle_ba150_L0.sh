@@ -27,8 +27,6 @@ max_rows=${4:-41}            # Total number of rows: 41 (default: 41)
 unlatch_value=${5:-65535}    # Unlatching bias value (default: 65535)
 unlatch_bias_mode=${6:-"all"}  # "all", "half", or "manual" (default: all)
 
-row_len = 119 99 79 59 39
-
 if [ ! -d $MAS_DATA/$dir ]; then
     mkdir $MAS_DATA/$dir
 fi
@@ -229,7 +227,7 @@ do
             #
             sleep 1
             fast_filename=$dir'/fast_rc1_row'$row'_rowlen'$rlen
-            # mce_run $fast_filename 204000 1  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+            # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
             mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
             #
             sleep 1
