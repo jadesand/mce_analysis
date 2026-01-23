@@ -18,6 +18,8 @@
 
 source $MAS_SCRIPT/mas_library.bash # RS: mostly define some functions
 
+SCRIPT_FULL_PATH=$(readlink -f "$0")
+
 dir=${1:-"test"}
 configprefix=${2:-"config"}
 max_cols=${3:-16}            # Total number of columns: 16 or 32 (default: 16)
@@ -45,7 +47,7 @@ mce_make_config
 mce_reconfig
 
 # Archive scripts and config files
-cp ~/rshi/noise/noise_fast_and_superfast_pickle_ba150_L0.sh $MAS_DATA/$dir/script
+cp "$SCRIPT_FULL_PATH" $MAS_DATA/$dir/script
 cp $MAS_DATA/experiment.cfg $MAS_DATA/$dir/experiment.cfg
 configs=("$MAS_DATA"/"$configprefix"*)
 if [ "${#configs[@]}" -ne 1 ]; then
@@ -232,6 +234,7 @@ do
             #
             sleep 1
             mce_reconfig  # get back to normal state to freeze the servo
+            sleep 1
 
         done
     done
