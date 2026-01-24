@@ -7,28 +7,50 @@
 # SF, BS - 2023-11-24 added norm noise and modified rows/cols/biases for L4 
 # CZ, RS - 2026-01-02 adapted for pickle ba150 L0
 
-# Usage: noise_superfast_script_pickle_ba150_L0.sh dir configprefix [unlatch_value] [max_cols] [bias_mode]
-#   dir:           output directory name (default: test)
+# Usage: noise_superfast_script_pickle_ba150_L0.sh run configprefix [max_cols] [max_rows] [unlatch_value] [unlatch_bias_mode] [f_cutoff]
+#   run:           output run extension (default: 0)
 #   configprefix:  config file prefix (default: config)
-#   max_rows:      total number of rows (default: 41 )
 #   max_cols:      total number of columns (16 or 32, default: 16)
+#   max_rows:      total number of rows (default: 41)
 #   unlatch_value: bias value for unlatching detectors (default: 65535)
 #   unlatch_bias_mode: "all" to bias all cols, "half" to bias only first half cols,
 #                      "manual" to use hardcoded values (default: all)
+#   f_cutoff:      Butterworth filter cutoff frequency in Hz (default: 75)
 
 source $MAS_SCRIPT/mas_library.bash # RS: mostly define some functions
 
+SCRIPT_NAME=$(basename "$0")
+SCRIPT_NAME_NO_EXT="${SCRIPT_NAME%.*}"
+
 SCRIPT_FULL_PATH=$(readlink -f "$0")
 
-dir=${1:-"test"}
+run=${1:-"0"}          # Output run_extension (default: 0)
 configprefix=${2:-"config"}
 max_cols=${3:-16}            # Total number of columns: 16 or 32 (default: 16)
 max_rows=${4:-41}            # Total number of rows: 41 (default: 41)
 unlatch_value=${5:-65535}    # Unlatching bias value (default: 65535)
 unlatch_bias_mode=${6:-"all"}  # "all", "half", or "manual" (default: all)
+f_cutoff=${7:-30}               # Butterworth filter cutoff frequency in Hz (default: 75)
 
-if [ ! -d $MAS_DATA/$dir ]; then
-    mkdir $MAS_DATA/$dir
+BUTTER_SCRIPT=$(dirname "$SCRIPT_FULL_PATH")/mce_butter_params.py
+
+# Set Butterworth filter coefficients for current row_len and f_cutoff
+set_butter_filter() {
+    local rlen=$1
+    local params=$(python $BUTTER_SCRIPT $max_rows $rlen $f_cutoff)
+    # params is a list like [b11, b12, b21, b22, k1, k2]
+    local vals=$(echo $params | tr -d '[],' )
+    echo "setting fltr_coeff for row_len=$rlen, f_cutoff=$f_cutoff Hz: $vals"
+    mce_cmd -qx wb rca fltr_coeff $vals
+}
+
+basedir=$SCRIPT_NAME_NO_EXT'_run'$run
+
+if [ ! -d $MAS_DATA/$basedir ]; then
+    mkdir $MAS_DATA/$basedir
+    else
+    echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number."
+    exit 1
 fi
 
 ####################################################################
@@ -45,8 +67,8 @@ mce_make_config
 mce_reconfig
 
 # Archive scripts and config files
-cp "$SCRIPT_FULL_PATH" $MAS_DATA/$dir/script
-cp $MAS_DATA/experiment.cfg $MAS_DATA/$dir/experiment.cfg
+cp "$SCRIPT_FULL_PATH" $MAS_DATA/$basedir/script
+cp $MAS_DATA/experiment.cfg $MAS_DATA/$basedir/experiment.cfg
 configs=("$MAS_DATA"/"$configprefix"*)
 if [ "${#configs[@]}" -ne 1 ]; then
     echo "Error: expected exactly one config file in $MAS_DATA"
@@ -55,7 +77,7 @@ if [ "${#configs[@]}" -ne 1 ]; then
     printf 'Please specify a unique configprefix.\n'
     exit 1
 fi
-cp "${configs[0]}" "$MAS_DATA/$dir/"
+cp "${configs[0]}" "$MAS_DATA/$basedir/"
 
 
 
@@ -79,7 +101,7 @@ fast_datarate=1
 
 # fast_script=$MAS_TEMP/fast.scr
 # rm $fast_script
-fast_script=$MAS_DATA/$dir/fast.scr
+fast_script=$MAS_DATA/$basedir/fast.scr
 echo "wb rca data_mode "$fast_datamode >> $fast_script
 echo "wb cc num_rows_reported "$fast_ccnumrows >> $fast_script
 echo "wb rca num_rows_reported "$fast_rcnumrows >> $fast_script
@@ -131,22 +153,27 @@ sleep 1
 # start from high bias and step down, assumes detectors have
 # already been biased into the transition
 
-for rlen in 119 59
+for rlen in 119 89 59
 do
     echo "setting row_len="$rlen
-    
+
+
     sleep 1
     mce_cmd -qx wb sys row_len $rlen
     sleep 1
     mce_cmd -qx wb rca sample_dly $(($rlen-10))
     sleep 1
+    set_butter_filter $rlen
+
+    echo "row_len set to: $(command_reply rb sys row_len)"
+    echo "sample_dly set to: $(command_reply rb rca sample_dly)"
 
     # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
     # for tbias in 5000 3000 2500 2000 0 
     for tbias in 2500
     do
         echo "tes_bias="$tbias
-        dir=$1'/bias'$tbias'/'
+        dir=$basedir'/bias'$tbias'/'
         mkdir $MAS_DATA'/'$dir
 
         echo "bias and settle for 30s"
@@ -163,6 +190,11 @@ do
         sleep 1
         mce_reconfig
         sleep 1
+        mce_cmd -qx wb sys row_len $rlen
+        sleep 1
+        mce_cmd -qx wb rca sample_dly $(($rlen-10))
+        sleep 1
+        set_butter_filter $rlen
 
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
         mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 68 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
@@ -172,11 +204,16 @@ do
         sleep 1
 
         # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
-        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 68 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
+        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
 
         sleep 1
         mce_reconfig
         sleep 1
+        mce_cmd -qx wb sys row_len $rlen
+        sleep 1
+        mce_cmd -qx wb rca sample_dly $(($rlen-10))
+        sleep 1
+        set_butter_filter $rlen
 
         ####################################################################
         # define the channels to sample here.
@@ -216,6 +253,12 @@ do
             mas_param set config_sync 0
             mce_make_config
             mce_reconfig
+            sleep 1
+            mce_cmd -qx wb sys row_len $rlen
+            sleep 1
+            mce_cmd -qx wb rca sample_dly $(($rlen-10))
+            sleep 1
+            set_butter_filter $rlen
             #
             # # this is a standard set of operations, use the fast (10kHz) script,
             # # but write the new readout_row_index
@@ -227,8 +270,8 @@ do
             #
             sleep 1
             fast_filename=$dir'/fast_rc1_row'$row'_rowlen'$rlen
-            # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
-            mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+            mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+            # mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
             #
             sleep 1
             mce_reconfig  # get back to normal state to freeze the servo
