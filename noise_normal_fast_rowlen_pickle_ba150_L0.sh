@@ -30,7 +30,7 @@ max_cols=${3:-16}            # Total number of columns: 16 or 32 (default: 16)
 max_rows=${4:-41}            # Total number of rows: 41 (default: 41)
 unlatch_value=${5:-65535}    # Unlatching bias value (default: 65535)
 unlatch_bias_mode=${6:-"all"}  # "all", "half", or "manual" (default: all)
-f_cutoff=${7:-30}               # Butterworth filter cutoff frequency in Hz (default: 75)
+f_cutoff=${7:-75}               # Butterworth filter cutoff frequency in Hz (default: 75)
 
 BUTTER_SCRIPT=$(dirname "$SCRIPT_FULL_PATH")/mce_butter_params.py
 
@@ -174,7 +174,9 @@ do
     do
         echo "tes_bias="$tbias
         dir=$basedir'/bias'$tbias'/'
-        mkdir $MAS_DATA'/'$dir
+        if [ ! -d $MAS_DATA/$dir ]; then
+            mkdir $MAS_DATA/$dir
+        fi
 
         echo "bias and settle for 30s"
         bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
@@ -195,9 +197,10 @@ do
         mce_cmd -qx wb rca sample_dly $(($rlen-10))
         sleep 1
         set_butter_filter $rlen
+        sleep 1
 
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
-        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 68 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
+        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
 
         sleep 1
         mce_cmd -qx wb rca data_mode 1
@@ -213,7 +216,6 @@ do
         sleep 1
         mce_cmd -qx wb rca sample_dly $(($rlen-10))
         sleep 1
-        set_butter_filter $rlen
 
         ####################################################################
         # define the channels to sample here.
@@ -258,7 +260,6 @@ do
             sleep 1
             mce_cmd -qx wb rca sample_dly $(($rlen-10))
             sleep 1
-            set_butter_filter $rlen
             #
             # # this is a standard set of operations, use the fast (10kHz) script,
             # # but write the new readout_row_index
@@ -270,8 +271,8 @@ do
             #
             sleep 1
             fast_filename=$dir'/fast_rc1_row'$row'_rowlen'$rlen
-            mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
-            # mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+            # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+            mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
             #
             sleep 1
             mce_reconfig  # get back to normal state to freeze the servo
