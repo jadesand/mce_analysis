@@ -1,6 +1,7 @@
 """
 Model MCE 4 pole butterworth filters.
 """
+# from https://e-mode.phas.ubc.ca/mcewiki/images/1/10/Mce_filt_py.txt
 
 from pylab import *
 
