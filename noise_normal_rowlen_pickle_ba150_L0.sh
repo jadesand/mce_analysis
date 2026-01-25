@@ -8,6 +8,7 @@
 # CZ, RS - 2026-01-02 adapted for pickle ba150 L0
 
 # Usage: noise_superfast_script_pickle_ba150_L0.sh run configprefix [max_cols] [max_rows] [unlatch_value] [unlatch_bias_mode] [f_cutoff]
+#   --overwrite:   allow overwriting existing directory
 #   run:           output run extension (default: 0)
 #   configprefix:  config file prefix (default: config)
 #   max_cols:      total number of columns (16 or 32, default: 16)
@@ -23,6 +24,16 @@ SCRIPT_NAME=$(basename "$0")
 SCRIPT_NAME_NO_EXT="${SCRIPT_NAME%.*}"
 
 SCRIPT_FULL_PATH=$(readlink -f "$0")
+
+# Parse --overwrite flag
+overwrite="false"
+for arg in "$@"; do
+    if [ "$arg" = "--overwrite" ]; then
+        overwrite="true"
+        shift
+        break
+    fi
+done
 
 run=${1:-"0"}          # Output run_extension (default: 0)
 configprefix=${2:-"config"}
@@ -46,11 +57,13 @@ set_butter_filter() {
 
 basedir=$SCRIPT_NAME_NO_EXT'_run'$run
 
-if [ ! -d $MAS_DATA/$basedir ]; then
+if [ -d $MAS_DATA/$basedir ]; then
+    if [ "$overwrite" != "true" ]; then
+        echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number or use overwrite=true."
+        exit 1
+    fi
+else
     mkdir $MAS_DATA/$basedir
-    else
-    echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number."
-    exit 1
 fi
 
 ####################################################################
@@ -121,35 +134,28 @@ sleep 1
 # start from high bias and step down, assumes detectors have
 # already been biased into the transition
 
-for rlen in 119 89 59
+# for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
+for tbias in 5000 3000 2500 2000 0 
+# for tbias in 5000 2500
 do
-    echo "setting row_len="$rlen
+    echo "tes_bias="$tbias
+    dir=$basedir'/bias'$tbias'/'
+    if [ ! -d $MAS_DATA/$dir ]; then
+        mkdir $MAS_DATA/$dir
+    fi
 
+    echo "bias and settle for 30s"
+    bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
+
+    sleep 30
 
     sleep 1
-    mce_cmd -qx wb sys row_len $rlen
+    mce_reconfig
     sleep 1
-    mce_cmd -qx wb rca sample_dly $(($rlen-10))
-    sleep 1
-    set_butter_filter $rlen
 
-    echo "row_len set to: $(command_reply rb sys row_len)"
-    echo "sample_dly set to: $(command_reply rb rca sample_dly)"
-
-    # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
-    # for tbias in 5000 3000 2500 2000 0 
-    for tbias in 2500
+    for rlen in 119 99 79 59
+    # for rlen in 109 99 79
     do
-        echo "tes_bias="$tbias
-        dir=$basedir'/bias'$tbias'/'
-        if [ ! -d $MAS_DATA/$dir ]; then
-            mkdir $MAS_DATA/$dir
-        fi
-
-        echo "bias and settle for 30s"
-        bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
-
-        sleep 30
 
         ####################################################################
         # normal data noise for all channels at the bias
@@ -157,22 +163,30 @@ do
 
         echo "taking normal, downsampled, noise for all channels at tes_bias="$tbias
 
-        sleep 1
-        mce_reconfig
-        sleep 1
         mce_cmd -qx wb sys row_len $rlen
         sleep 1
         mce_cmd -qx wb rca sample_dly $(($rlen-10))
         sleep 1
         set_butter_filter $rlen
-        sleep 1
+        sleep 5
+
+        echo "row_len set to: $(command_reply rb sys row_len)"
+        echo "sample_dly set to: $(command_reply rb rca sample_dly)"
+        
+        if [ "$overwrite" = "true" ]; then
+            rm -f $MAS_DATA/$dir'/all_rcs_datamode10_rowlen'$rlen*
+        fi
 
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
-        sleep 1
+        sleep 5
         mce_cmd -qx wb rca data_mode 1
-        sleep 1
+        sleep 5
+        
+        if [ "$overwrite" = "true" ]; then
+            rm -f $MAS_DATA/$dir'/all_rcs_datamode1_rowlen'$rlen*
+        fi
 
         # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
