@@ -95,9 +95,10 @@ cp "${configs[0]}" "$MAS_DATA/$basedir/"
 ####################################################################
 
 fast_datamode=1
-fast_ccnumrows=1
-fast_rcnumrows=1
+fast_ccnumrows=10
+fast_rcnumrows=10
 fast_datarate=1
+fast_rowindex=31  # starting row for fast readout (rows 31-40)
 
 # fast_script=$MAS_TEMP/fast.scr
 # rm $fast_script
@@ -106,6 +107,7 @@ echo "wb rca data_mode "$fast_datamode >> $fast_script
 echo "wb cc num_rows_reported "$fast_ccnumrows >> $fast_script
 echo "wb rca num_rows_reported "$fast_rcnumrows >> $fast_script
 echo "wb cc data_rate "$fast_datarate >> $fast_script
+echo "wb rca readout_row_index "$fast_rowindex >> $fast_script
 
 #For fast data we use the operational row_len value, so we don't need to add to the script a cmd to set row_len manually
 #The fs for fast data is fs=50e6/(row_len*num_rows*data_rate), so for num_rows=41, row_len=120 --> fs ~ 10kHz
@@ -199,15 +201,15 @@ do
         set_butter_filter $rlen
         sleep 1
 
-        # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
-        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
+        # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
+        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
         sleep 1
         mce_cmd -qx wb rca data_mode 1
         sleep 1
 
-        # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
-        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec), fs=400 Hz
+        # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
+        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
         sleep 1
         mce_reconfig
@@ -218,67 +220,27 @@ do
         sleep 1
 
         ####################################################################
-        # define the channels to sample here.
-        # loop slowly over the rows, so the servo_freeze only needs to be
-        # performed once per row.
+        # ACQUIRE FAST DATA: ~10kHz, closed loop, unfiltered feedback
+        # Reading rows 31-40 simultaneously
         ####################################################################
 
-        # for row in 31 32 33 34 36 37 38 39 40
-        for row in 36
-        do
-            case "$row" in
-                31 ) 
-                    coluse=(0);;
-                32 ) 
-                    coluse=(0);;
-                33 )
-                    coluse=(4);;
-                34 )
-                    coluse=(0);;
-                36 )
-                    coluse=(0 4);;
-                37 )
-                    coluse=(0);;
-                38 )
-                    coluse=(0);;
-                39 )
-                    coluse=(4);;
-                40 )
-                    coluse=(4);;
-            esac
-
-            ####################################################################
-            # ACQUIRE FAST DATA: ~10kHz, closed loop, unfiltered feedback
-            ####################################################################
-
-            echo "taking **kHz data for row"$row
-            mas_param set config_sync 0
-            mce_make_config
-            mce_reconfig
-            sleep 1
-            mce_cmd -qx wb sys row_len $rlen
-            sleep 1
-            mce_cmd -qx wb rca sample_dly $(($rlen-10))
-            sleep 1
-            #
-            # # this is a standard set of operations, use the fast (10kHz) script,
-            # # but write the new readout_row_index
-            #
-            sleep 1
-            mce_cmd -iqf $fast_script
-            sleep 1
-            mce_cmd -qx wb rca readout_row_index $row
-            #
-            sleep 1
-            fast_filename=$dir'/fast_rc1_row'$row'_rowlen'$rlen
-            # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
-            mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
-            #
-            sleep 1
-            mce_reconfig  # get back to normal state to freeze the servo
-            sleep 1
-
-        done
+        echo "taking 10kHz data for rows 31-40"
+        mas_param set config_sync 0
+        mce_make_config
+        mce_reconfig
+        sleep 1
+        mce_cmd -qx wb sys row_len $rlen
+        sleep 1
+        mce_cmd -qx wb rca sample_dly $(($rlen-10))
+        sleep 1
+        mce_cmd -iqf $fast_script
+        sleep 1
+        fast_filename=$dir'/fast_rc1_rows31-40_rowlen'$rlen
+        # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+        mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+        sleep 1
+        mce_reconfig  # get back to normal state
+        sleep 1
     done
 done
 
