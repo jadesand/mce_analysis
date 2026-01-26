@@ -178,7 +178,8 @@ do
     # performed once per row.
     ####################################################################
 
-    for row in 31 32 33 34 36 37 38 39 40
+    # for row in 31 32 33 34 36 37 38 39 40
+    for row in 31 32 36 37
     do
         case "$row" in
             31 )
@@ -190,7 +191,8 @@ do
             34 )
                 coluse=(0);;
             36 )
-                coluse=(0 4);;
+                # coluse=(0 4);;
+                coluse=(0);;
             37 )
                 coluse=(0);;
             38 )
