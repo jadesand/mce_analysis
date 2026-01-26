@@ -95,8 +95,11 @@ cp "${configs[0]}" "$MAS_DATA/$basedir/"
 fast_datamode=1
 fast_ccnumrows=10
 fast_rcnumrows=10
+fast_rcnumcols=1
+fast_ccnumcols=1
 fast_datarate=1
 fast_rowindex=31  # starting row for fast readout (rows 31-40)
+fast_colindex=0   # column for fast readout
 
 # fast_script=$MAS_TEMP/fast.scr
 # rm $fast_script
@@ -104,8 +107,11 @@ fast_script=$MAS_DATA/$basedir/fast.scr
 echo "wb rca data_mode "$fast_datamode >> $fast_script
 echo "wb cc num_rows_reported "$fast_ccnumrows >> $fast_script
 echo "wb rca num_rows_reported "$fast_rcnumrows >> $fast_script
+echo "wb cc num_cols_reported "$fast_ccnumcols >> $fast_script
+echo "wb rca num_cols_reported "$fast_rcnumcols >> $fast_script
 echo "wb cc data_rate "$fast_datarate >> $fast_script
 echo "wb rca readout_row_index "$fast_rowindex >> $fast_script
+echo "wb rca readout_col_index "$fast_colindex >> $fast_script
 
 #For fast data we use the operational row_len value, so we don't need to add to the script a cmd to set row_len manually
 #The fs for fast data is fs=50e6/(row_len*num_rows*data_rate), so for num_rows=41, row_len=120 --> fs ~ 10kHz
@@ -224,7 +230,7 @@ do
         sleep 1
         mce_cmd -iqf $fast_script
         sleep 5
-        fast_filename=$dir'/fast_rc1_rows31-40_rowlen'$rlen
+        fast_filename=$dir'/fast_rc1_rows31-40_col0_rowlen'$rlen
         # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
         mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
         sleep 1
