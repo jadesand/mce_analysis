@@ -81,8 +81,6 @@ cp "${configs[0]}" "$MAS_DATA/$basedir/"
 
 
 
-
-
 ####################################################################
 # this section has the details for some one-time set ups
 ####################################################################
@@ -155,35 +153,24 @@ sleep 1
 # start from high bias and step down, assumes detectors have
 # already been biased into the transition
 
-for rlen in 119 89 59
+
+# for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
+# for tbias in 5000 3000 2500 2000 0 
+for tbias in 2500
 do
-    echo "setting row_len="$rlen
+    echo "tes_bias="$tbias
+    dir=$basedir'/bias'$tbias'/'
+    if [ ! -d $MAS_DATA/$dir ]; then
+        mkdir $MAS_DATA/$dir
+    fi
 
+    echo "bias and settle for 30s"
+    bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
 
-    sleep 1
-    mce_cmd -qx wb sys row_len $rlen
-    sleep 1
-    mce_cmd -qx wb rca sample_dly $(($rlen-10))
-    sleep 1
-    set_butter_filter $rlen
-
-    echo "row_len set to: $(command_reply rb sys row_len)"
-    echo "sample_dly set to: $(command_reply rb rca sample_dly)"
-
-    # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
-    # for tbias in 5000 3000 2500 2000 0 
-    for tbias in 2500
+    sleep 30
+    for rlen in 119 89 59
     do
-        echo "tes_bias="$tbias
-        dir=$basedir'/bias'$tbias'/'
-        if [ ! -d $MAS_DATA/$dir ]; then
-            mkdir $MAS_DATA/$dir
-        fi
-
-        echo "bias and settle for 30s"
-        bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
-
-        sleep 30
+        echo "setting row_len="$rlen
 
         ####################################################################
         # 400Hz standard noise for all channels at the bias
@@ -201,6 +188,9 @@ do
         set_butter_filter $rlen
         sleep 1
 
+        echo "row_len set to: $(command_reply rb sys row_len)"
+        echo "sample_dly set to: $(command_reply rb rca sample_dly)"
+
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
@@ -214,10 +204,7 @@ do
         sleep 1
         mce_reconfig
         sleep 1
-        mce_cmd -qx wb sys row_len $rlen
-        sleep 1
-        mce_cmd -qx wb rca sample_dly $(($rlen-10))
-        sleep 1
+
 
         ####################################################################
         # ACQUIRE FAST DATA: ~10kHz, closed loop, unfiltered feedback
