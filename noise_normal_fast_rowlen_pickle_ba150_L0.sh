@@ -168,6 +168,7 @@ do
     bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
 
     sleep 30
+
     for rlen in 119 89 59
     do
         echo "setting row_len="$rlen
@@ -194,9 +195,9 @@ do
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
-        sleep 1
+        sleep 5
         mce_cmd -qx wb rca data_mode 1
-        sleep 1
+        sleep 5
 
         # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
@@ -215,13 +216,14 @@ do
         mas_param set config_sync 0
         mce_make_config
         mce_reconfig
+
         sleep 1
         mce_cmd -qx wb sys row_len $rlen
         sleep 1
         mce_cmd -qx wb rca sample_dly $(($rlen-10))
         sleep 1
         mce_cmd -iqf $fast_script
-        sleep 1
+        sleep 5
         fast_filename=$dir'/fast_rc1_rows31-40_rowlen'$rlen
         # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
         mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
