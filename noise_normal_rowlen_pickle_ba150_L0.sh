@@ -153,7 +153,7 @@ do
     mce_reconfig
     sleep 1
 
-    for rlen in 119 99 79 59
+    for rlen in 119 104 89 74 59
     # for rlen in 109 99 79
     do
 
@@ -177,8 +177,8 @@ do
             rm -f $MAS_DATA/$dir'/all_rcs_datamode10_rowlen'$rlen*
         fi
 
-        # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
-        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
+        mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
+        # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
         sleep 5
         mce_cmd -qx wb rca data_mode 1
@@ -188,8 +188,8 @@ do
             rm -f $MAS_DATA/$dir'/all_rcs_datamode1_rowlen'$rlen*
         fi
 
-        # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
-        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
+        mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
+        # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
         sleep 1
         mce_reconfig

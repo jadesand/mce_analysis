@@ -92,8 +92,8 @@ datarate=$(( $ccnumrows * $ccnumcols ))
 #nsamp = ccnumrows * ccnumcols * fs * t_int
 #nsamp = 164000000 # integration time t_int ~ 10s
 
-# sampleuse=$(((4000000)/($ccnumrows)/($ccnumcols) ))
-sampleuse=$(((4000)/($ccnumrows)/($ccnumcols) )) # quick check
+sampleuse=$(((4000000)/($ccnumrows)/($ccnumcols) ))
+# sampleuse=$(((4000)/($ccnumrows)/($ccnumcols) )) # quick check
 sampint=$(printf "%.0f\n" "$sampleuse")
 
 samplenum=`command_reply rb rc1 sample_num`
@@ -158,8 +158,8 @@ sleep 1
 # already been biased into the transition
 
 # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
-# for tbias in 5000 3000 2500 2000 0 
-for tbias in 2500
+for tbias in 5000 3000 2500 2000 0 
+# for tbias in 2500
 do
     echo "tes_bias="$tbias
     dir=$basedir'/bias'$tbias'/'
@@ -178,8 +178,8 @@ do
     # performed once per row.
     ####################################################################
 
-    # for row in 31 32 33 34 36 37 38 39 40
-    for row in 31 32 36 37
+    for row in 31 32 33 34 36 37 38 39 40
+    # for row in 31 32 36 37
     do
         case "$row" in
             31 )
@@ -191,8 +191,7 @@ do
             34 )
                 coluse=(0);;
             36 )
-                # coluse=(0 4);;
-                coluse=(0);;
+                coluse=(0 4);;
             37 )
                 coluse=(0);;
             38 )
@@ -203,12 +202,16 @@ do
                 coluse=(4);;
         esac
 
+        
+
         ####################################################################
         # freeze the servo on a single row, go open loop, take error data (mode=0)
         #
         # from here on start writing mce_cmd writes to a script for all cols
         # in the row of interest, then after accumulating run the script
         ####################################################################
+        sleep 1
+        mce_reconfig  # get back to normal state to freeze the servo
         sleep 1
 
         python $FREEZE_SCRIPT -r $row --o --save
