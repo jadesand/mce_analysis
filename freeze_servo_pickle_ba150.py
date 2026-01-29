@@ -19,11 +19,14 @@
 import sys, time, os
 sys.path.append('/home/bicep3/python_tools')
 sys.path.append('/usr/mce/mce_script/python')
+# sys.path.append('/home/bicep3/rshi/local/mas/swig')# doesn't work
+# sys.path.append('/home/bicep3/shawn/mas_931/swig') # doesn't work
 # sys.path.append('/src/mas/swig')
 from glob import *
 from optparse import OptionParser
 from numpy import *
 
+# from mce import mce as MCE
 from pymce import MCE as mce
 
 from mce_data import *
@@ -51,6 +54,7 @@ opts, args = o.parse_args()
 
 # get an MCE interface object
 m = mce()
+# m = MCE()
 
 # Determine name and number of readout cards
 n_rc = len(m.read('rca', 'data_mode'))
@@ -253,10 +257,9 @@ if opts.do_open:
         d=f.Read()
         frames = d.data
         # average over all frames (CHECK THIS!!)
-        # fb = fix(mean(array(frames),axis=1)).astype(int)
-        fb = fix(mean(array(frames),axis=0)/2**12).astype(int)
+        fb = fix(mean(array(frames),axis=1)).astype(int)
+	# fb = fix(mean(array(frames),axis=0)/2**12).astype(int)
     
-    print('fb (raw) = ', fb)
     # In the future, mce will work directly with numpy arrays...
     fb = array(fb).reshape((n_rows,-1))
     # Find integer fb_const values to apply
