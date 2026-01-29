@@ -81,6 +81,8 @@ cp "${configs[0]}" "$MAS_DATA/$basedir/"
 
 
 
+
+
 ####################################################################
 # this section has the details for some one-time set ups
 ####################################################################
@@ -95,11 +97,8 @@ cp "${configs[0]}" "$MAS_DATA/$basedir/"
 fast_datamode=1
 fast_ccnumrows=10
 fast_rcnumrows=10
-fast_rcnumcols=1
-fast_ccnumcols=1
 fast_datarate=1
 fast_rowindex=31  # starting row for fast readout (rows 31-40)
-fast_colindex=0   # column for fast readout
 
 # fast_script=$MAS_TEMP/fast.scr
 # rm $fast_script
@@ -107,11 +106,8 @@ fast_script=$MAS_DATA/$basedir/fast.scr
 echo "wb rca data_mode "$fast_datamode >> $fast_script
 echo "wb cc num_rows_reported "$fast_ccnumrows >> $fast_script
 echo "wb rca num_rows_reported "$fast_rcnumrows >> $fast_script
-echo "wb cc num_cols_reported "$fast_ccnumcols >> $fast_script
-echo "wb rca num_cols_reported "$fast_rcnumcols >> $fast_script
 echo "wb cc data_rate "$fast_datarate >> $fast_script
 echo "wb rca readout_row_index "$fast_rowindex >> $fast_script
-echo "wb rca readout_col_index "$fast_colindex >> $fast_script
 
 #For fast data we use the operational row_len value, so we don't need to add to the script a cmd to set row_len manually
 #The fs for fast data is fs=50e6/(row_len*num_rows*data_rate), so for num_rows=41, row_len=120 --> fs ~ 10kHz
@@ -159,25 +155,35 @@ sleep 1
 # start from high bias and step down, assumes detectors have
 # already been biased into the transition
 
-
-# for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
-# for tbias in 5000 3000 2500 2000 0 
-for tbias in 2500
+for rlen in 119 59
 do
-    echo "tes_bias="$tbias
-    dir=$basedir'/bias'$tbias'/'
-    if [ ! -d $MAS_DATA/$dir ]; then
-        mkdir $MAS_DATA/$dir
-    fi
+    echo "setting row_len="$rlen
 
-    echo "bias and settle for 30s"
-    bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
 
-    sleep 30
+    sleep 1
+    mce_cmd -qx wb sys row_len $rlen
+    sleep 1
+    mce_cmd -qx wb rca sample_dly $(($rlen-10))
+    sleep 1
+    set_butter_filter $rlen
 
-    for rlen in 119 89 59
+    echo "row_len set to: $(command_reply rb sys row_len)"
+    echo "sample_dly set to: $(command_reply rb rca sample_dly)"
+
+    # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
+    # for tbias in 5000 3000 2500 2000 0 
+    for tbias in 2500
     do
-        echo "setting row_len="$rlen
+        echo "tes_bias="$tbias
+        dir=$basedir'/bias'$tbias'/'
+        if [ ! -d $MAS_DATA/$dir ]; then
+            mkdir $MAS_DATA/$dir
+        fi
+
+        echo "bias and settle for 30s"
+        bias_tess  $tbias 0 0 0 $tbias 0 0 0 0 0 0 0 0 0 0 0
+
+        sleep 30
 
         ####################################################################
         # 400Hz standard noise for all channels at the bias
@@ -195,15 +201,12 @@ do
         set_butter_filter $rlen
         sleep 1
 
-        echo "row_len set to: $(command_reply rb sys row_len)"
-        echo "sample_dly set to: $(command_reply rb rca sample_dly)"
-
         # mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode10_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
 
-        sleep 5
+        sleep 1
         mce_cmd -qx wb rca data_mode 1
-        sleep 5
+        sleep 1
 
         # mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 6800 s # this corresponds to t= #samples/fs (sec)
         mce_run $dir'/all_rcs_datamode1_rowlen'$rlen 100 s # this corresponds to t= #samples/fs (sec)
@@ -211,7 +214,10 @@ do
         sleep 1
         mce_reconfig
         sleep 1
-
+        mce_cmd -qx wb sys row_len $rlen
+        sleep 1
+        mce_cmd -qx wb rca sample_dly $(($rlen-10))
+        sleep 1
 
         ####################################################################
         # ACQUIRE FAST DATA: ~10kHz, closed loop, unfiltered feedback
@@ -222,17 +228,16 @@ do
         mas_param set config_sync 0
         mce_make_config
         mce_reconfig
-
         sleep 1
         mce_cmd -qx wb sys row_len $rlen
         sleep 1
         mce_cmd -qx wb rca sample_dly $(($rlen-10))
         sleep 1
         mce_cmd -iqf $fast_script
-        sleep 5
-        fast_filename=$dir'/fast_rc1_rows31-40_col0_rowlen'$rlen
+        sleep 1
+        fast_filename=$dir'/fast_rc1_rows31-40_rowlen'$rlen
         # mce_run $fast_filename 204000 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
-        mce_run $fast_filename 2040 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
+        mce_run $fast_filename 20400 s  # this corresponds to t= #samples/fs (sec), fs=10 kHz
         sleep 1
         mce_reconfig  # get back to normal state
         sleep 1
