@@ -9,6 +9,7 @@
 # RS - 2026-01-24 adapted for superfast data only
 
 # Usage: noise_superfast_script_pickle_ba150_L0.sh run configprefix [unlatch_value] [max_cols] [bias_mode]
+#   --overwrite:   allow overwriting existing directory
 #   run:           output run extension (default: 0)
 #   configprefix:  config file prefix (default: config)
 #   max_rows:      total number of rows (default: 41 )
@@ -24,6 +25,16 @@ SCRIPT_NAME_NO_EXT="${SCRIPT_NAME%.*}"
 
 SCRIPT_FULL_PATH=$(readlink -f "$0")
 
+# Parse --overwrite flag
+overwrite="false"
+for arg in "$@"; do
+    if [ "$arg" = "--overwrite" ]; then
+        overwrite="true"
+        shift
+        break
+    fi
+done
+
 run=${1:-"0"}          # Output run_extension (default: 0)
 configprefix=${2:-"config"}
 max_cols=${3:-16}            # Total number of columns: 16 or 32 (default: 16)
@@ -35,11 +46,13 @@ FREEZE_SCRIPT=$(dirname "$SCRIPT_FULL_PATH")/freeze_servo_pickle_ba150_L0.py
 
 basedir=$SCRIPT_NAME_NO_EXT'_run'$run
 
-if [ ! -d $MAS_DATA/$basedir ]; then
+if [ -d $MAS_DATA/$basedir ]; then
+    if [ "$overwrite" != "true" ]; then
+        echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number or use overwrite=true."
+        exit 1
+    fi
+else
     mkdir $MAS_DATA/$basedir
-    else
-    echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number."
-    exit 1
 fi
 
 ####################################################################
@@ -158,8 +171,8 @@ sleep 1
 # already been biased into the transition
 
 # for tbias in 6000 4000 3000 2750 2500 2250 2000 1750 1500 500 0
-for tbias in 5000 3000 2500 2000 0 
-# for tbias in 2500
+# for tbias in 5000 3000 2500 2000 0 
+for tbias in 5000
 do
     echo "tes_bias="$tbias
     dir=$basedir'/bias'$tbias'/'
@@ -178,8 +191,8 @@ do
     # performed once per row.
     ####################################################################
 
-    for row in 31 32 33 34 36 37 38 39 40
-    # for row in 31 32 36 37
+    #for row in 31 32 33 34 36 37 38 39 40
+    for row in 31
     do
         case "$row" in
             31 )
@@ -191,7 +204,8 @@ do
             34 )
                 coluse=(0);;
             36 )
-                coluse=(0 4);;
+                # coluse=(0 4);;
+                coluse=(4);;
             37 )
                 coluse=(0);;
             38 )
