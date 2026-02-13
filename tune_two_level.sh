@@ -1,3 +1,4 @@
+#!/bin/bash
 # array_id = two_level_20260210
 PARENT_NAME="two_level_$(date +%s)"
 
