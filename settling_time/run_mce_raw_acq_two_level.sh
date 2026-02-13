@@ -14,8 +14,8 @@ rcs=(2)
 rcs_str=$(IFS=,; echo "${rcs[*]}")
 
 {
-# for CS in 10 11 12 13 14 15 16 17; do
-for CS in 10; do
+for CS in 10 11 12 13 14 15 16 17; do
+# for CS in 10; do
     mce_zero_bias > /dev/null 2>&1
 
     cp "$MAS_DATA_REAL/two_level_${ctime}/CS$((CS-10))/experiment.cfg" "$MAS_DATA_REAL/experiment.cfg"
