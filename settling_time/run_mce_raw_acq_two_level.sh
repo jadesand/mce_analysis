@@ -1,4 +1,6 @@
 #!/bin/bash
+ctime=$1
+
 MAS_DATA_REAL=$(readlink -f "$MAS_DATA")
 
 PARENT_NAME="two_level_raw_$(date +%s)"
@@ -12,10 +14,14 @@ rcs=(2)
 rcs_str=$(IFS=,; echo "${rcs[*]}")
 
 {
-    for CS in 10 11 12 13 14 15 16 17; do
+# for CS in 10 11 12 13 14 15 16 17; do
+for CS in 10; do
     mce_zero_bias > /dev/null 2>&1
-    mas_param set row_order 0 1 2 3 4 5 6 7 8 9 ${CS}
-    auto_setup --rc=2
+
+    cp "$MAS_DATA_REAL/two_level_${ctime}/CS$((CS-10))/experiment.cfg" "$MAS_DATA_REAL/experiment.cfg"
+    mce_reconfig
+    # mas_param set row_order 0 1 2 3 4 5 6 7 8 9 ${CS}
+    # auto_setup --rc=2
     
     "$(dirname "$0")/run_mce_raw_acq.sh" 1 "$columns_str" "$rcs_str"
 
