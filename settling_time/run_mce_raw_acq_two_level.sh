@@ -11,8 +11,7 @@ columns_str=$(IFS=,; echo "${columns[*]}")
 rcs=(2)
 rcs_str=$(IFS=,; echo "${rcs[*]}")
 
-# for CS in 10 11 12 13 14 15 16 17; do
-for CS in 10; do
+{for CS in 10 11 12 13 14 15 16 17; do
     mce_zero_bias > /dev/null 2>&1
     mas_param set row_order 0 1 2 3 4 5 6 7 8 9 ${CS}
     auto_setup --rc=2
@@ -28,6 +27,5 @@ for CS in 10; do
     if [[ -n "$LATEST" ]]; then
         DIRNAME=$(basename "$LATEST")
         mv "$MAS_DATA_REAL/$DIRNAME" "$MAS_DATA_REAL/$PARENT_NAME/CS$((CS-10))"
-        mv "$MAS_DATA_REAL/analysis/$DIRNAME" "$MAS_DATA_REAL/analysis/$PARENT_NAME/CS$((CS-10))"
     fi
-done
+done} 2>&1 | tee "$MAS_DATA_REAL/$PARENT_NAME/log"
