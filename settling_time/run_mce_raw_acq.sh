@@ -32,14 +32,16 @@ default_columns=(0 1 2 3 4 5 6 7)
 default_rcs=(1 2)
 
 # did user specify columns? comma delimited...
-if [ -n "$2" ] then 
+if [ -n "$2" ] 
+then 
     IFS=', ' read -r -a columns <<< "$2"
 else
     columns=("${default_columns[@]}")
 fi
 
 # did user specify rcs? comma delimited...
-if [ -n "$3" ] then 
+if [ -n "$3" ] 
+then 
     IFS=', ' read -r -a rcs <<< "$3"
 else
     rcs=("${default_rcs[@]}")
