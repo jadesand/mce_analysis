@@ -28,8 +28,8 @@ echo "OUTFILE=${LOGFILE}"
 ndatasets=$1
 
 # defaults
-default_columns=(0 1 2 3 4 5 6 7)
-default_rcs=(1 2)
+default_columns=(0 4)
+default_rcs=(1)
 
 # did user specify columns? comma delimited...
 if [ -n "$2" ] 
