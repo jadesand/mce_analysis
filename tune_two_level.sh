@@ -3,7 +3,7 @@
 PARENT_NAME="two_level_$(date +%s)"
 
 # Resolve the symlink to get the real path
-MAS_DATA_REAL=$(readlink -f "$MAS_DATA")
+MAS_DATA_REAL="/data/cryo/$(date +%Y%m%d)"
 
 mkdir -p "$MAS_DATA_REAL/$PARENT_NAME"
 mkdir -p "$MAS_DATA_REAL/analysis/$PARENT_NAME"
