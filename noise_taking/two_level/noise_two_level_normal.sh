@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: noise_two_level.sh [OPTIONS]
+# Usage: noise_two_level_normal.sh [OPTIONS]
 #   -t, --tune-ctime CTIME   tune ctime (REQUIRED)
 #   --overwrite              allow overwriting existing directory
 #   -r, --run RUN            output run extension (default: 0)
@@ -76,7 +76,7 @@ else
 fi
 
 # Set Butterworth filter coefficients for current row_len and f_cutoff
-BUTTER_SCRIPT=$(dirname "$SCRIPT_FULL_PATH")/mce_butter_params.py
+BUTTER_SCRIPT=$(dirname "$SCRIPT_FULL_PATH")/../../python/mce_butter_params.py
 set_butter_filter() {
     local rlen=$1
     local params=$(python $BUTTER_SCRIPT $max_rows $rlen $f_cutoff)
@@ -99,11 +99,11 @@ mas_param set config_sync 0
 # Archive scripts and config files
 cp $SCRIPT_FULL_PATH $MAS_DATA/$basedir/script
 
-echo "bias and settle for 30s"
+echo "bias and settle for 10s"
 echo "taking normal, noise for all channels at tes_bias=0"
 bias_tess 0
 
-sleep 30
+sleep 10
 
 
 for cs_dir in $(ls -d "$tune_dir"/CS* | sort -t S -k 2 -n); do
