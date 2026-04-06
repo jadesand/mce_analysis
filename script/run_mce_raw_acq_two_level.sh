@@ -1,4 +1,11 @@
 #!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "Usage: $(basename "$0") <ctime>"
+    echo "Error: tune ctime is required"
+    exit 1
+fi
+
 ctime=$1
 
 MAS_DATA_REAL=$(readlink -f "$MAS_DATA")
