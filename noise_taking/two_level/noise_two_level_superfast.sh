@@ -1,4 +1,19 @@
+#!/bin/bash
 
+# This script takes superfast noise data on specified channels, one row at a time, freezing the servo on that row.
+# It also takes fb_const square wave calibration data for each channel.
+# The script is designed to be run after a two-level tuning has been done, and it uses the experiment.cfg files from the tune for MCE setup.
+# The output is organized into a directory structure based on the tune ctime and CS, with separate files for each row and column.   
+
+# Usage: noise_two_level_superfast.sh [OPTIONS]
+#   -t, --tune-ctime CTIME   tune ctime (REQUIRED)
+#   -c, --channel-list FILE  text file specifying channels to take noise on (format: "CS row col1,col2,...", one line per row, with optional comment lines starting with #)
+#   --overwrite              allow overwriting existing directory
+#   -r, --run RUN            output run extension (default: 0)
+#   -C, --configprefix PFX   config file prefix (default: config)
+#   -l, --row-len N          length of each row (default: 62)
+#   -u, --unlatch-value V    bias value for unlatching detectors (default: 65535)
+#   -b, --unlatch-bias-mode M  "all", "half", or "manual" (default: all)
 
 source $MAS_SCRIPT/mas_library.bash
 
@@ -7,6 +22,7 @@ SCRIPT_NAME_NO_EXT="${SCRIPT_NAME%.*}"
 SCRIPT_FULL_PATH=$(readlink -f "$0")
 
 FREEZE_SCRIPT="/home/mce/rshi/mce_scripts/python/mce_freeze_servo_mux11d.py"
+# FREEZE_SCRIPT="/home/mce/shawn/mce_scripts/shawn_mce_freeze_servo"
 
 # Default values
 tune_ctime=""
@@ -17,7 +33,6 @@ configprefix="config"
 row_len=62
 unlatch_value=65535
 unlatch_bias_mode="all"
-f_cutoff=75
 
 # Parse keyword arguments with getopt
 opts=$(getopt -o t:c:R:C:l:u:b:f: \
@@ -36,7 +51,6 @@ while true; do
         -l|--row-len)           row_len="$2"; shift 2 ;;
         -u|--unlatch-value)     unlatch_value="$2"; shift 2 ;;
         -b|--unlatch-bias-mode) unlatch_bias_mode="$2"; shift 2 ;;
-        -f|--f-cutoff)          f_cutoff="$2"; shift 2 ;;
         --)                     shift; break ;;
         *)                      echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -68,11 +82,18 @@ if [ -d $MAS_DATA/$basedir ]; then
     if [ "$overwrite" != "true" ]; then
         echo "Directory $MAS_DATA/$basedir already exists! Please choose a different run number or use overwrite=true."
         exit 1
+    else
+        echo "Overwriting existing directory $MAS_DATA/$basedir"
+        rm -rf $MAS_DATA/$basedir
+        mkdir $MAS_DATA/$basedir
     fi
 else
     mkdir $MAS_DATA/$basedir
 fi
 
+
+mce_reconfig
+sleep 3
 ####################################################################
 # initial set up, and archiving config and script stuff
 ####################################################################
@@ -86,16 +107,18 @@ mas_param set config_sync 0
 row_len=62 	    #98 gives 250kHz, 62 gives 400kHz, 120 gives 200kHz
 #for superfast data (raw mode + rectangle mode ) sampling frequency is fs=50e6/(row_len*2)
 #(the extra 2 comes from the fact that we set num_rows=2 -- for script stability?--)
-ccnumrows=11
+# ccnumrows=11
+ccnumrows=50
 ccnumcols=1
 
 datarate=$(( $ccnumrows * $ccnumcols ))
 #nsamp = ccnumrows * ccnumcols * fs * t_int
 #nsamp = 164000000 # integration time t_int ~ 10s
 
-sampleuse=$(((8000000)/($ccnumrows)/($ccnumcols) ))
-# sampleuse=$(((4000)/($ccnumrows)/($ccnumcols) )) # quick check
+sampleuse=$(((4000000)/($ccnumrows)/($ccnumcols) ))
 sampint=$(printf "%.0f\n" "$sampleuse")
+# sampint=1000
+echo "sampint="$sampint
 
 samplenum=`command_reply rb rc1 sample_num`
 sampledly=$(( $row_len-$samplenum ))
@@ -108,12 +131,12 @@ sampledly=$(( $row_len-$samplenum ))
 # card1=3              #where rc1 fb_const is physically mapped per mce_status -g
 # card2=4              #where rc2 fb_const is physically mapped per mce_status -g
 period=50            #min is 8000/41=195
-stepsize=50          #10 is good, keep it linear --> changed to 200 to increase S/N
+stepsize=20          #10 is good, keep it linear --> changed to 200 to increase S/N
 
 # Parameters for 10 kHz acquisition during fb_const square wave calibration
 fast_ccnumrows=1
 fast_rcnumrows=1
-fast_datarate=1
+fast_datarate=4
 
 # get and save in variables the default values set up by mce_reconfig
 
@@ -132,11 +155,11 @@ def_datarate=`command_reply rb cc data_rate`
 # Archive scripts and config files
 cp $SCRIPT_FULL_PATH $MAS_DATA/$basedir/script
 
-echo "bias and settle for 30s"
+echo "bias and settle for 1s"
 echo "taking superfast noise at tes_bias=0"
 bias_tess 0
 
-sleep 30
+sleep 1
 
 
 prev_cs=""
@@ -164,10 +187,11 @@ while IFS=' ' read -r cs row cols; do
         cp "$tune_dir/$cs/experiment.cfg" "$MAS_DATA/$basedir/$cs/"
 
         # Set up MCE for this CS
+        sleep 1
         mce_zero_bias > /dev/null 2>&1
         sleep 1
         mce_make_config -x -e "$MAS_DATA/$basedir/$cs/experiment.cfg"
-        sleep 5
+        sleep 1
 
         prev_cs="$cs"
         prev_row=""  # force row setup on CS change
@@ -177,10 +201,11 @@ while IFS=' ' read -r cs row cols; do
     if [ "$row" != "$prev_row" ]; then
 
         # Re-run mce_make_config to ensure clean MCE state before freezing
+        sleep 1
         mce_zero_bias > /dev/null 2>&1
         sleep 1
         mce_make_config -x -e "$MAS_DATA/$basedir/$cs/experiment.cfg"
-        sleep 5
+        sleep 1
 
         echo "Freezing row $row for $cs"
         ####################################################################
@@ -191,8 +216,8 @@ while IFS=' ' read -r cs row cols; do
         ####################################################################
 
         python $FREEZE_SCRIPT --row $row sq1
+        sleep 1
 
-        sleep 2
         fb_val=(`command_reply rb sq1 fb_const`)
         echo "fb_val="${fb_val[@]}
 
@@ -233,21 +258,20 @@ while IFS=' ' read -r cs row cols; do
         echo "wb cc data_rate "$datarate >> $script
         echo "wb rca readout_col_index "$col >> $script
 
-        echo "sleep 10" >> $script  # mce_cmd sleep <microseconds>
+        echo "sleep 1000" >> $script  # mce_cmd sleep <microseconds>
 
         echo "acq_config "$filename" rc"$rc >> $script # acq_config <filename> <readout_card>, configures a single output file to receive MCE frames
         echo "acq_go "$sampint >> $script
+        echo "sleep 10" >> $script  # mce_cmd sleep <microseconds>
 
         # return mce to default state
         # rca num_rows_reported and cc num_rows_reported were not changed
-        echo "wb sys row_len "$def_rowlen >> $script
-        echo "wb rca sample_dly "$def_sampdly >> $script
-        echo "wb sys num_rows "$def_numrows >> $script
-        echo "wb rca num_cols_reported "$def_rcnumcolsrep >> $script
-        echo "wb cc num_cols_reported "$def_ccnumcolsrep >> $script
-        echo "wb cc data_rate "$def_datarate >> $script
-        echo "wb rca readout_col_index "$def_colindex >> $script
+        # echo "wb sys row_len "$def_rowlen >> $script
+        # echo "wb rca sample_dly "$def_sampdly >> $script
+        # echo "wb sys num_rows "$def_numrows >> $script
+        # echo "wb rca num_cols_reported "$def_rcnumcolsrep >> $script
 
+        echo "sleep 10" >> $script  # mce_cmd sleep <microseconds>
         extn=$MAS_DATA/$basedir/$cs'/calib_row'$row'_col'$col
 
         echo "fb_const_calib="${fb_val[@]}
@@ -257,13 +281,15 @@ while IFS=' ' read -r cs row cols; do
         step=$(($max - $min))
 
         # set up for fast (10 kHz) acquisition, stay in data_mode 0
+        echo "wb sys row_len "$def_rowlen >> $script
+        echo "wb rca sample_dly "$def_sampdly >> $script
+        echo "wb sys num_rows "$def_numrows >> $script
 
         echo "wb cc num_rows_reported "$fast_ccnumrows >> $script
         echo "wb rca num_rows_reported "$fast_rcnumrows >> $script
         echo "wb cc data_rate "$fast_datarate >> $script
-
+        echo "sleep 10" >> $script  # mce_cmd sleep <microseconds>
         # set up fb const square wave
-
         echo "acq_config "$extn" rc"$rc >> $script
 
         for ifb_const in {1..200}; do
@@ -292,6 +318,7 @@ if [ -f "$script" ]; then
     echo "running noise_superfast.scr"
     mce_cmd -iqf $script
     echo "done with noise_superfast.scr"
+
     cp $script $MAS_DATA/$basedir/$prev_cs"/noise_superfast.scr.row"$prev_row
 fi
 sleep 10
