@@ -1,9 +1,12 @@
 #!/bin/bash
-# array_id = two_level_20260210
 PARENT_NAME="two_level_$(date +%s)"
 
 # Resolve the symlink to get the real path
 MAS_DATA_REAL="/data/cryo/$(date +%Y%m%d)"
+
+MAS_CONFIG="${MAS_CONFIG:-/usr/mce/config}"
+ARRAY_ID=$(cat "$MAS_DATA_ROOT/array_id")
+DEAD_DIR="$MAS_CONFIG/dead_lists/$ARRAY_ID"
 
 mkdir -p "$MAS_DATA_REAL/$PARENT_NAME"
 mkdir -p "$MAS_DATA_REAL/analysis/$PARENT_NAME"
@@ -11,10 +14,13 @@ mkdir -p "$MAS_DATA_REAL/analysis/$PARENT_NAME"
 {
 for CS in 10 11 12 13 14 15 16 17; do
     echo "CS=$CS"
-    
+
     mce_zero_bias > /dev/null 2>&1
     mas_param set row_order 0 1 2 3 4 5 6 7 8 9 ${CS}
-    
+
+    # Point dead_squid1.cfg at the per-CS mask before auto_setup reads it
+    ln -sf "$DEAD_DIR/dead_squid1_cs$((CS-10)).cfg" "$DEAD_DIR/dead_squid1.cfg"
+
     auto_setup --rc=2
     
     # Find the most recently created directory
