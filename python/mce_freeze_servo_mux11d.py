@@ -38,7 +38,9 @@ o.add_option('--config', default=None, type=str,
              help="tune config file.  If not provided, will use the default config file for the current setup.")
 o.add_option('--row', default=None, type=int,
              help="specify row to lock (for sq1 and tes stages).")
-o.add_option('--reconfig', action='store_true',
+o.add_option('--rc', default='1', type=str,
+             help="specify rc that is working on.")
+o.add_option('--reconfig', action='store_false', default=False,
              help="run mce_reconfig before setting up open loop.")
 o.add_option('--frames', default=30, type=int)
 o.add_option('--no-reinit', action='store_true',
@@ -58,7 +60,11 @@ stage = args[0]
 if stage in ['sq1','tes'] and opts.row is None:
     o.error("The %s stage requires a --row argument." % stage)
 
-# A useful function...
+if opts.rc == 'a':
+    opts.rc = 1
+else:
+    opts.rc = int(opts.rc)
+
 
 def read_and_zero(mce, card, param):
     """
@@ -109,6 +115,7 @@ if stage in ['sq1', 'tes']:
         # Load tune
         fs = ast.util.FileSet(tune_path)
         tuning = ast.util.tuningData(exp_file=fs.get('cfg_file'), data_dir='')
+        
         sq = ast.SQ1Ramp.join([ast.SQ1Ramp(f) for f in fs.stage_all('sq1_ramp_check')])
         sq.tuning = tuning
         # Compute locking feedbacks from tune (and other useful info)
@@ -130,7 +137,7 @@ if stage in ['sq1', 'tes']:
     # never want voltage down these SQ1FB lines.  Send 0V, for the SQ1FB
     # is -8192 DAC.
     #fb[np.where(locked==0)]=-8192 # zero for the sq1 fb lines is -8192
-    columns_off=np.array(cfg['columns_off'][:len(fb)])
+    columns_off=np.array(cfg['columns_off'][(opts.rc-1)*8:(opts.rc-1)*8+len(fb)])
     fb[np.where(columns_off==1)]=-8192
     print fb.astype('int')
     # Set fb_const (kill the servo below)
