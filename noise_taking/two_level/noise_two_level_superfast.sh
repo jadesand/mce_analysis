@@ -26,7 +26,7 @@ FREEZE_SCRIPT="/home/mce/rshi/mce_scripts/python/mce_freeze_servo_mux11d.py"
 
 # Default values
 tune_ctime=""
-channel_list="superfast_channels.txt"
+channel_list="tes_input_shorted.txt"
 overwrite="false"
 run="0"
 configprefix="config"
