@@ -1,16 +1,14 @@
 # Copied from /home/mce/brianna/go_250kHz_2level.py
-import numpy as np
-
-import os
 import re
-import sys
-import time
 import subprocess
-from datetime import datetime
-
+import sys
+import os
+import datetime
+import time
+import numpy as np
 import mcectrl
 from mce_control import mce_control
-
+from datetime import datetime
 print str(datetime.now())
 
 # only open once
@@ -47,7 +45,7 @@ def main():
     # do everything in the current data directory
     os.chdir(os.path.realpath("/data/cryo/current_data"))
 
-    data_mode=4
+    data_mode=4 
     # the total # of samples will be data_rate * this, so 256x this for 250 kHz acquisition
     nsamples=25000 # 25.6 sec @ 250 kHz
 
@@ -60,12 +58,12 @@ def main():
     print '!!! Disable dead mask...in this mode, only one channel so obviously user wants it servo\'d!'
     os.system('mas_param set config_dead_tes 1')
 
-    tuned = False
-    col = int(sys.argv[1])
-    row = int(sys.argv[2])
-
+    tuned=False
+    col=int(sys.argv[1])
+    row=int(sys.argv[2])
     # log_file_ctime=int(sys.argv[3])
-    # extra_text_for_log_file=' '.join(sys.argv[4:])
+
+    extra_text_for_log_file=' '.join(sys.argv[4:])
 
     row_len=100
     sample_num=10
@@ -79,7 +77,7 @@ def main():
     print 'col_for_daq=',col_for_daq
     
     # should already be tuned when we get here...
-    if not tuned:
+    if not tuned or retune_at_each_bias:
         #
         mcectrl.put_one_rs_on_all_rows_2level(row)
         print '* tuning after changing row_order for 250 kHz MUX/1 kHz readout on c%dr%d ...'%(col,row)
@@ -99,7 +97,7 @@ def main():
     os.system('mce_cmd -x wb sys row_len %d'%row_len)
     # set sample_dly
     os.system('mce_cmd -x wb rca sample_dly %d'%sample_dly)
-    
+    '''
     ctime=int(time.mktime(datetime.now().timetuple()))
     print '* taking data on c%dr%d ...'%(col,row)
     label='test'
@@ -107,7 +105,7 @@ def main():
     cmd="""mce_run %d_nr2_dr256_dm%d_250kHz_r%dc%d %d %d"""%(ctime,data_mode,row,col,nsamples,rc)
     print 'cmd=',cmd
     os.system(cmd)
-    
+    '''
     if flush_after:
         flush_experiment_cfg()
     
