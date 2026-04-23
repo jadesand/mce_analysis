@@ -24,3 +24,4 @@ done
 mce_zero_bias > /dev/null
 sleep 1
 mce_make_config -x -e $MAS_DATA/two_level_${tune_ctime}/CS${cs}/experiment.cfg 
+sleep 1
