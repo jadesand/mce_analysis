@@ -22,7 +22,6 @@ SCRIPT_NAME_NO_EXT="${SCRIPT_NAME%.*}"
 SCRIPT_FULL_PATH=$(readlink -f "$0")
 
 FREEZE_SCRIPT="/home/mce/rshi/mce_scripts/python/mce_freeze_servo_mux11d.py"
-# FREEZE_SCRIPT="/home/mce/shawn/mce_scripts/shawn_mce_freeze_servo"
 
 # Default values
 tune_ctime=""
