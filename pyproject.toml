@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mce-analysis"
+version = "0.1.0"
+description = "MCE/SQUID tuning analysis: noise, PSD fitting, timestream/tset processing, tune visualization"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "tqdm",
+    # moby2 is a local editable install (not on PyPI) -- install it separately,
+    # e.g. `pip install -e /home/cryo/src/moby2`, before importing noise/tset.
+]
+
+[tool.setuptools]
+packages = ["mce_analysis", "mce_analysis.ac_crosstalk"]
+
+[tool.setuptools.package-dir]
+mce_analysis = "."
