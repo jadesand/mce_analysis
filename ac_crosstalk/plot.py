@@ -171,9 +171,9 @@ def plot_sq1(col, row, fb, servo, filter_sq1, servo_unfilt,
 # 1-level muxing (no chip-select axis); it reuses the cs=True colors.
 _ICMINMAX_COLORS = {
     (True, True):   ('b', 'deepskyblue'),
-    (True, False):  ('brown', 'lightcoral'),
-    (False, True):  ('darkgreen', 'lime'),
-    (False, False): ('darkgoldenrod', 'orange'),
+    (True, False):  ('#E4572E', '#FFB521'),
+    (False, True):  ('#12B800', '#80FF72'),
+    (False, False): ('#E55381', '#EFA9AE'),
     (None, True):   ('b', 'deepskyblue'),
     (None, False):  ('brown', 'lightcoral'),
 }
@@ -198,13 +198,13 @@ def condition_label(cs_state, rs_state):
 def _label_icminmax_axes(ax, convert_units):
     """Set y/x labels and limits for an Ic min/max axis; returns the unit-name suffix."""
     if convert_units:
-        ax.set_ylabel('SSA Input Current ($\\mu$A)', fontsize=18)
-        ax.set_xlabel('SQ1 Total Bias Current ($\\mu$A)', fontsize=18)
+        ax.set_ylabel('SSA Input Current ($\\mu$A)', fontsize=10)
+        ax.set_xlabel('SQ1 Total Bias Current ($\\mu$A)', fontsize=10)
         ax.set_ylim(0, 25)
         return 'ua'
-    ax.set_ylabel('SSA FB (DAC)', fontsize=18)
-    ax.set_xlabel('SQ1 Total Bias Current (DAC)', fontsize=18)
-    ax.set_ylim(0, 7500)
+    ax.set_ylabel('SSA Output $[\mathrm{ADU}]$', fontsize=10)
+    ax.set_xlabel('$I_\mathrm{SQ1B}~[\mathrm{DAC}]$', fontsize=10)
+    ax.set_ylim(0, 6000)
     return 'dac'
 
 
@@ -221,7 +221,7 @@ def plot_icminmax(col, row, conditions, ctime=None, convert_units=False,
     """
     alpha = 1
     if s1b_minmax_fig is None:
-        s1b_minmax_fig, s1b_minmax_ax = plt.subplots(figsize=(8, 6), dpi=150)
+        s1b_minmax_fig, s1b_minmax_ax = plt.subplots(figsize=(5, 4), dpi=150, layout='constrained')
 
     for i, (cond, ic_params) in enumerate(conditions):
         bias, ic_min, ic_max, max_idx, max_mod, start_idx, start_mod = ic_params
@@ -236,21 +236,21 @@ def plot_icminmax(col, row, conditions, ctime=None, convert_units=False,
                                 lw=3, color='purple', alpha=alpha,
                                 label='$I^{SQ1}_{mod}$ = ' + f'{max_mod:.3f} $\\mu$A @ ' +
                                       '$I_{SQ1B,total} = $' + f'{bias[max_idx]:.1f} $\\mu$A')
-            if manual_bias_idx is not None:
-                s1b_minmax_ax.plot([bias[manual_bias_idx], bias[manual_bias_idx]], [0, ic_max[manual_bias_idx]],
-                                    lw=2, color='orange', alpha=1, label='Manually Chosen Bias', linestyle='dotted')
-                s1b_minmax_ax.plot([0, bias[manual_bias_idx]], [ic_max[manual_bias_idx], ic_max[manual_bias_idx]],
-                                    lw=2, color='orange', alpha=1, linestyle='dotted')
+            # if manual_bias_idx is not None:
+            #     s1b_minmax_ax.plot([bias[manual_bias_idx], bias[manual_bias_idx]], [0, ic_max[manual_bias_idx]],
+            #                         lw=2, color='orange', alpha=1, label='Manually Chosen Bias', linestyle='dotted')
+            #     s1b_minmax_ax.plot([0, bias[manual_bias_idx]], [ic_max[manual_bias_idx], ic_max[manual_bias_idx]],
+            #                         lw=2, color='orange', alpha=1, linestyle='dotted')
         else:
             bias_limit = bias[start_idx]
-            s1b_minmax_ax.plot([bias_limit, bias_limit], [0, bias[-1]],
-                                label='Bias Limit' if i == 1 else None, color='deeppink', lw=3, linestyle="dotted")
-            s1b_minmax_ax.plot([0, bias[-1]], [start_mod, start_mod], color='deeppink', lw=3, linestyle="dotted")
+            # s1b_minmax_ax.plot([bias_limit, bias_limit], [0, bias[-1]],
+            #                     label='Bias Limit' if i == 1 else None, color='deeppink', lw=3, linestyle="dotted")
+            # s1b_minmax_ax.plot([0, bias[-1]], [start_mod, start_mod], color='deeppink', lw=3, linestyle="dotted")
 
     leg = s1b_minmax_ax.legend(loc='upper left', fontsize=10)
     for lh in leg.legend_handles:
         lh.set_alpha(1)
-
+    
     uname = _label_icminmax_axes(s1b_minmax_ax, convert_units)
     s1b_minmax_ax.set_xlim(left=0)
     s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + ' Row ' + str(row))
@@ -258,7 +258,7 @@ def plot_icminmax(col, row, conditions, ctime=None, convert_units=False,
     savename = str(ctime) + '_icminmax_units' + uname + '_row' + str(row) + '_col' + str(col) + '.png'
     print('saving to: ' + os.path.join(savedir, savename))
     s1b_minmax_fig.set_facecolor('white')
-    s1b_minmax_fig.savefig(os.path.join(savedir, savename))
+    s1b_minmax_fig.savefig(os.path.join(savedir, savename), dpi=300)
     if show_plot:
         s1b_minmax_fig.show()
     s1b_minmax_ax.clear()
@@ -281,7 +281,7 @@ def plot_icminmax_col(last_fig, col, conditions, ctime=None,
     """
     alpha = 1 if last_fig else 0.1
     if s1b_minmax_ax is None:
-        s1b_minmax_fig, s1b_minmax_ax = plt.subplots(figsize=(8, 6), dpi=150)
+        s1b_minmax_fig, s1b_minmax_ax = plt.subplots(figsize=(4, 4), dpi=150, layout='constrained')
 
     for i, (cond, ic_params) in enumerate(conditions):
         bias, ic_min, ic_max, max_idx, max_mod, start_idx, start_mod = ic_params
@@ -294,40 +294,51 @@ def plot_icminmax_col(last_fig, col, conditions, ctime=None,
                             label=f'SQ1 max, {label}' if last_fig else None)
 
         if i == 0:
-            s1b_minmax_ax.plot([bias[max_idx], bias[max_idx]], [ic_min[max_idx], ic_max[max_idx]],
-                                lw=3, color='purple', alpha=alpha,
-                                label='Maximum modulation' if last_fig else None)
-            if manual_bias_idx is not None:
-                manual_alpha = 1 if last_fig else alpha
-                s1b_minmax_ax.plot([bias[manual_bias_idx], bias[manual_bias_idx]], [0, ic_max[manual_bias_idx]],
-                                    lw=2, color='orange', alpha=manual_alpha,
-                                    label='Manually Chosen Bias' if last_fig else None, linestyle='dotted')
-                s1b_minmax_ax.plot([0, bias[manual_bias_idx]], [ic_max[manual_bias_idx], ic_max[manual_bias_idx]],
-                                    lw=2, color='orange', alpha=manual_alpha, linestyle='dotted')
+            pass
+            # s1b_minmax_ax.plot([bias[max_idx], bias[max_idx]], [ic_min[max_idx], ic_max[max_idx]],
+            #                     lw=3, color='purple', alpha=alpha,
+            #                     label='Maximum modulation' if last_fig else None)
+            # if manual_bias_idx is not None:
+            #     manual_alpha = 1 if last_fig else alpha
+            #     s1b_minmax_ax.plot([bias[manual_bias_idx], bias[manual_bias_idx]], [0, ic_max[manual_bias_idx]],
+            #                         lw=2, color='orange', alpha=manual_alpha,
+            #                         label='Manually Chosen Bias' if last_fig else None, linestyle='dotted')
+            #     s1b_minmax_ax.plot([0, bias[manual_bias_idx]], [ic_max[manual_bias_idx], ic_max[manual_bias_idx]],
+            #                         lw=2, color='orange', alpha=manual_alpha, linestyle='dotted')
         elif last_fig:
             bias_limit = bias[start_idx]
-            s1b_minmax_ax.plot([bias_limit, bias_limit], [0, bias[-1]],
-                                label='Bias Limit' if i == 1 else None, color='deeppink', lw=3, linestyle="dotted")
-            s1b_minmax_ax.plot([0, bias[-1]], [start_mod, start_mod], color='deeppink', lw=3, linestyle="dotted")
+            # s1b_minmax_ax.plot([bias_limit, bias_limit], [0, bias[-1]],
+            #                     label='Bias Limit' if i == 1 else None, color='deeppink', lw=3, linestyle="dotted")
+            # s1b_minmax_ax.plot([0, bias[-1]], [start_mod, start_mod], color='deeppink', lw=3, linestyle="dotted")
 
     if not last_fig:
         return s1b_minmax_fig, s1b_minmax_ax
 
-    leg = s1b_minmax_ax.legend(loc='upper left', fontsize=10)
-    for lh in leg.legend_handles:
-        lh.set_alpha(1)
+    # leg = s1b_minmax_ax.legend(loc='upper left', fontsize=10)
+    # for lh in leg.legend_handles:
+    #     lh.set_alpha(1)
     s1b_minmax_ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+
+    s1b_minmax_ax.axvline(16000, c='gray', lw=1.)
+
+    def i2dac(x):
+        return x / (3.7e-3)
+
+    def dac2i(x):
+        return x * (3.7e-3)
+    ax2 = s1b_minmax_ax.secondary_xaxis('top', functions=(dac2i, i2dac))
+    ax2.set_xlabel(r'$I_\mathrm{SQ1B}~[\mathrm{\mu A}]$')
 
     uname = _label_icminmax_axes(s1b_minmax_ax, convert_units)
     s1b_minmax_ax.set_xlim(left=0)
     chip_suffix = '' if chip_num is None else f' Chip {chip_num}'
-    s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + chip_suffix)
-    s1b_minmax_fig.tight_layout()
+    # s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + chip_suffix)
+    # s1b_minmax_fig.tight_layout()
     chip_filesuffix = '' if chip_num is None else f'_chip{chip_num}'
     savename = str(ctime) + '_icminmax_units' + uname + '_summary_col' + str(col) + chip_filesuffix + '.png'
     print('saving to: ' + os.path.join(savedir, savename))
     s1b_minmax_fig.set_facecolor('white')
-    s1b_minmax_fig.savefig(os.path.join(savedir, savename))
+    s1b_minmax_fig.savefig(os.path.join(savedir, savename), dpi=300)
     if show_plot:
         s1b_minmax_fig.show()
     print("Figures open: " + str(plt.get_fignums()))
