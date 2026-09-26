@@ -533,6 +533,21 @@ def plot_psd(freq, psd, title='', ax=None, label=None, ls='-', c=None, lw=1, zor
     
     return ax
 
+def plot_fit_mask(ax, freq, fit_mask, color='gray', alpha=0.3, linewidth=0):
+    excluded = ~fit_mask
+    # find edges of contiguous excluded regions
+    diff = np.diff(excluded.astype(int))
+    starts = np.where(diff == 1)[0] + 1
+    ends   = np.where(diff == -1)[0] + 1
+    # handle if starts/ends at boundary
+    if excluded[0]:
+        starts = np.concatenate([[0], starts])
+    if excluded[-1]:
+        ends = np.concatenate([ends, [len(freq)]])
+    for s, e in zip(starts, ends):
+        ax.axvspan(freq[s], freq[e-1], color=color, alpha=alpha, linewidth=linewidth)
+
+
 
 ###################
 ### 50 MHz data ###
