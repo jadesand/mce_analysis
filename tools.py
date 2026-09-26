@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 import os
+import re
 import glob
 import configparser
 from pathlib import Path
@@ -87,6 +88,53 @@ def load_data(mcefile, col, cycle_index_to_use=None, row_index_to_use=None,
 # kept so existing callers of either name keep working.
 load_mcefile_from_raw = load_mcefile
 load_raw_data = load_data
+
+
+def load_dead_mask(path, order_by='row'):
+    """
+    Load a dead_list config file (e.g. dead_squid1.cfg) into a boolean mask.
+    Parses the ``n_rows``, ``n_cols``, and ``mask = [...]`` fields. 
+    Comments (``#`` to end of line and ``/* ... */``) are stripped before parsing.
+
+    Parameters
+    ----------
+    path : str
+        Path to the dead_list config file.
+    order_by : str, optional
+        Whether the mask values are ordered by row or by column in the config 
+        file. Must be either 'row' or 'col'. Default is 'row'.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D boolean array of shape (n_rows, n_cols), where True indicates
+        a dead channel (i.e., should be masked).
+    """
+    with open(path) as f:
+        text = f.read()
+
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    text = re.sub(r"#.*", "", text)
+
+    n_rows = int(re.search(r"n_rows\s*=\s*(\d+)", text).group(1))
+    n_cols = int(re.search(r"n_cols\s*=\s*(\d+)", text).group(1))
+
+    mask_body = re.search(r"mask\s*=\s*\[(.*?)\]", text, flags=re.DOTALL).group(1)
+    values = [int(v) for v in re.findall(r"-?\d+", mask_body)]
+
+    expected = n_rows * n_cols
+    if len(values) != expected:
+        raise ValueError(
+            f"{path}: expected {expected} mask values ({n_rows}x{n_cols}), "
+            f"found {len(values)}"
+        )
+
+    if order_by=='row':
+        return np.array(values, dtype=bool).reshape(n_rows, n_cols)
+    elif order_by=='col':
+        return np.array(values, dtype=bool).reshape(n_cols, n_rows).T
+    else:
+        raise ValueError(f"Invalid order_by value: {order_by}. Must be 'row' or 'col'.")
 
 
 
