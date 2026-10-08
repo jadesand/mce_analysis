@@ -89,7 +89,6 @@ def load_data(mcefile, col, cycle_index_to_use=None, row_index_to_use=None,
 load_mcefile_from_raw = load_mcefile
 load_raw_data = load_data
 
-
 def load_dead_mask(path, order_by='row'):
     """
     Load a dead_list config file (e.g. dead_squid1.cfg) into a boolean mask.
@@ -110,29 +109,40 @@ def load_dead_mask(path, order_by='row'):
         A 2D boolean array of shape (n_rows, n_cols), where True indicates
         a dead channel (i.e., should be masked).
     """
-    with open(path) as f:
-        text = f.read()
+    if isinstance(path, str):
+        path = [path]
 
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    text = re.sub(r"#.*", "", text)
+    mask = None
+    for p in path:
+        with open(p) as f:
+            text = f.read()
 
-    n_rows = int(re.search(r"n_rows\s*=\s*(\d+)", text).group(1))
-    n_cols = int(re.search(r"n_cols\s*=\s*(\d+)", text).group(1))
+        text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+        text = re.sub(r"#.*", "", text)
 
-    mask_body = re.search(r"mask\s*=\s*\[(.*?)\]", text, flags=re.DOTALL).group(1)
-    values = [int(v) for v in re.findall(r"-?\d+", mask_body)]
+        n_rows = int(re.search(r"n_rows\s*=\s*(\d+)", text).group(1))
+        n_cols = int(re.search(r"n_cols\s*=\s*(\d+)", text).group(1))
 
-    expected = n_rows * n_cols
-    if len(values) != expected:
-        raise ValueError(
-            f"{path}: expected {expected} mask values ({n_rows}x{n_cols}), "
-            f"found {len(values)}"
-        )
+        mask_body = re.search(r"mask\s*=\s*\[(.*?)\]", text, flags=re.DOTALL).group(1)
+        values = [int(v) for v in re.findall(r"-?\d+", mask_body)]
+
+        expected = n_rows * n_cols
+        if len(values) != expected:
+            raise ValueError(
+                f"{path}: expected {expected} mask values ({n_rows}x{n_cols}), "
+                f"found {len(values)}"
+            )
+
+        mask_array = np.array(values, dtype=bool).reshape(n_rows, n_cols)
+        if mask is None:
+            mask = mask_array
+        else:
+            mask = np.logical_or(mask, mask_array)
 
     if order_by=='row':
-        return np.array(values, dtype=bool).reshape(n_rows, n_cols)
+        return np.asarray(mask, dtype=bool).reshape(n_rows, n_cols)
     elif order_by=='col':
-        return np.array(values, dtype=bool).reshape(n_cols, n_rows).T
+        return np.asarray(mask, dtype=bool).reshape(n_cols, n_rows).T
     else:
         raise ValueError(f"Invalid order_by value: {order_by}. Must be 'row' or 'col'.")
 
