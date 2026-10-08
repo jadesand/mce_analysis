@@ -548,6 +548,7 @@ def fit_superfast_psd_nored(fb, Pb, Mb, ini_guess,
                            method=method,
                            bounds=bounds,
                            **minimize_dict)
+        
         if ret.success and ret.fun < best_chi2:
             best_chi2 = ret.fun
             best_ret = ret
