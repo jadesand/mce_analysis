@@ -441,7 +441,7 @@ def correct_iv_uA(Ibias_uA, Ites_uA, w=20,
     return Ibias_uA_new, Ites_uA_new
 
 
-def get_Rtes_Ptes_Rpar(Ibias_uA, Ites_uA, Rsh_mOhm=3., fit_Rpar=True, num_search=15, err_thresh=0.1, num_fit=10):
+def get_Rtes_Ptes_Rpar(Ibias_uA, Ites_uA, Rsh_mOhm=3., fit_Rpar=True, num_search=15, err_thresh=0.1, num_fit=10, verbose=False):
     """
     From IV data, grab resistance v. power
 
@@ -477,7 +477,7 @@ def get_Rtes_Ptes_Rpar(Ibias_uA, Ites_uA, Rsh_mOhm=3., fit_Rpar=True, num_search
 
     # print(Ibias_A, Ites_A)
     if fit_Rpar:
-        Rpar_mOhm = fit_Rpar_mOhm(Ibias_uA, Ites_uA, Rsh_mOhm=Rsh_mOhm, num_search=num_search, err_thresh=err_thresh, num_fit=num_fit)
+        Rpar_mOhm = fit_Rpar_mOhm(Ibias_uA, Ites_uA, Rsh_mOhm=Rsh_mOhm, num_search=num_search, err_thresh=err_thresh, num_fit=num_fit, verbose=verbose)
     else:
         Rpar_mOhm = 0.0
     Rpar_Ohm = Rpar_mOhm * 1e-3

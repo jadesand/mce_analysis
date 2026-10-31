@@ -561,7 +561,7 @@ def fit_superfast_psd_nored(fb, Pb, Mb, ini_guess,
 def fit_superfast_psd_red_and_white(fb, Pb, Mb, ini_guess,
                              method='Nelder-Mead',
                              bounds=[(-3, 0), (1, 4), (-2, 3)],
-                             minimize_dict={'tol': 1e-6}):
+                             minimize_dict={'tol': 1e-3}):
     '''
     Fit the no-red superfast noise model to a single binned PSD.
 
@@ -612,6 +612,7 @@ def fit_superfast_psd_red_and_white(fb, Pb, Mb, ini_guess,
                            method=method,
                            bounds=bounds,
                            **minimize_dict)
+        # print(ret)
         if ret.success and ret.fun < best_chi2:
             best_chi2 = ret.fun
             best_ret = ret

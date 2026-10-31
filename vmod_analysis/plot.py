@@ -2,6 +2,7 @@ import numpy as np
 
 import matplotlib
 from matplotlib.ticker import AutoMinorLocator
+from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 
 import os
@@ -195,6 +196,28 @@ def condition_label(cs_state, rs_state):
     return f'{cs} {rs}'
 
 
+def _icminmax_legend(ax, conditions, **kwargs):
+    """One legend entry per condition (not per min/max curve), drawn in the
+    darker (min) color of that condition's _ICMINMAX_COLORS pair. Keeps the
+    legend at 2 lines for 1-level muxing and 4 for 2-level, instead of 8."""
+    handles = []
+    seen = set()
+    for cond, _ in conditions:
+        key = (cond['cs_state'], cond['rs_state'])
+        if key in seen:
+            continue
+        seen.add(key)
+        handles.append(Line2D(
+            [], [], color=_icminmax_color(*key)[1], lw=2,
+            label=condition_label(*key)))
+    handles += [h for h in ax.get_legend_handles_labels()[0]]
+    leg = ax.legend(handles=handles, handlelength=0.75, **kwargs)
+    for lh in leg.legend_handles:
+        lh.set_alpha(1)
+    return leg
+
+
+
 def _label_icminmax_axes(ax, convert_units):
     """Set y/x labels and limits for an Ic min/max axis; returns the unit-name suffix."""
     if convert_units:
@@ -204,7 +227,7 @@ def _label_icminmax_axes(ax, convert_units):
         return 'ua'
     ax.set_ylabel('SSA Output $[\mathrm{ADU}]$', fontsize=10)
     ax.set_xlabel('$I_\mathrm{SQ1B}~[\mathrm{DAC}]$', fontsize=10)
-    ax.set_ylim(0, 6000)
+    ax.set_ylim(0, 8000)
     return 'dac'
 
 
@@ -226,16 +249,24 @@ def plot_icminmax(col, row, conditions, ctime=None, convert_units=False,
     for i, (cond, ic_params) in enumerate(conditions):
         bias, ic_min, ic_max, max_idx, max_mod, start_idx, start_mod = ic_params
         min_c, max_c = _icminmax_color(cond['cs_state'], cond['rs_state'])
-        label = condition_label(cond['cs_state'], cond['rs_state'])
 
-        s1b_minmax_ax.plot(bias, ic_min, lw=2, label=f'SQ1 min, {label}', color=min_c, alpha=alpha)
-        s1b_minmax_ax.plot(bias, ic_max, lw=2, label=f'SQ1 max, {label}', color=max_c, alpha=alpha)
+        if np.nanmedian(ic_max) < 0:
+            max_c, min_c = min_c, max_c
+        
+        s1b_minmax_ax.plot(bias, ic_min, lw=2, color=min_c, alpha=alpha)
+        s1b_minmax_ax.plot(bias, ic_max, lw=2, color=max_c, alpha=alpha)
 
         if i == 0:
-            s1b_minmax_ax.plot([bias[max_idx], bias[max_idx]], [ic_min[max_idx], ic_max[max_idx]],
-                                lw=3, color='purple', alpha=alpha,
-                                label='$I^{SQ1}_{mod}$ = ' + f'{max_mod:.3f} $\\mu$A @ ' +
-                                      '$I_{SQ1B,total} = $' + f'{bias[max_idx]:.1f} $\\mu$A')
+            if convert_units:
+                s1b_minmax_ax.plot([bias[max_idx], bias[max_idx]], [ic_min[max_idx], ic_max[max_idx]],
+                                    lw=3, color='purple', alpha=alpha,
+                                    label=r'$I^\mathrm{SQ1}_\mathrm{mod}$ = ' + f'{max_mod:.3f} $\\mu$A \n@ ' +
+                                        r'$I_\mathrm{SQ1B} = $' + f'{bias[max_idx]:.1f} $\\mu$A')
+            else:
+                s1b_minmax_ax.plot([bias[max_idx], bias[max_idx]], [ic_min[max_idx], ic_max[max_idx]],
+                                    lw=3, color='purple', alpha=alpha,
+                                    label=r'$I^\mathrm{SQ1}_\mathrm{mod}$ = ' + f'{max_mod:.0f} ADU \n@ ' +
+                                        r'$I_\mathrm{SQ1B} = $' + f'{bias[max_idx]:.0f} DAC')
             # if manual_bias_idx is not None:
             #     s1b_minmax_ax.plot([bias[manual_bias_idx], bias[manual_bias_idx]], [0, ic_max[manual_bias_idx]],
             #                         lw=2, color='orange', alpha=1, label='Manually Chosen Bias', linestyle='dotted')
@@ -247,10 +278,8 @@ def plot_icminmax(col, row, conditions, ctime=None, convert_units=False,
             #                     label='Bias Limit' if i == 1 else None, color='deeppink', lw=3, linestyle="dotted")
             # s1b_minmax_ax.plot([0, bias[-1]], [start_mod, start_mod], color='deeppink', lw=3, linestyle="dotted")
 
-    leg = s1b_minmax_ax.legend(loc='upper left', fontsize=10)
-    for lh in leg.legend_handles:
-        lh.set_alpha(1)
-    
+    _icminmax_legend(s1b_minmax_ax, conditions, loc='upper left', fontsize=10)
+
     uname = _label_icminmax_axes(s1b_minmax_ax, convert_units)
     s1b_minmax_ax.set_xlim(left=0)
     s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + ' Row ' + str(row))
@@ -283,15 +312,16 @@ def plot_icminmax_col(last_fig, col, conditions, ctime=None,
     if s1b_minmax_ax is None:
         s1b_minmax_fig, s1b_minmax_ax = plt.subplots(figsize=(4, 4), dpi=150, layout='constrained')
 
+
     for i, (cond, ic_params) in enumerate(conditions):
         bias, ic_min, ic_max, max_idx, max_mod, start_idx, start_mod = ic_params
         min_c, max_c = _icminmax_color(cond['cs_state'], cond['rs_state'])
-        label = condition_label(cond['cs_state'], cond['rs_state'])
-
-        s1b_minmax_ax.plot(bias, ic_min, lw=2, color=min_c, alpha=alpha,
-                            label=f'SQ1 min, {label}' if last_fig else None)
-        s1b_minmax_ax.plot(bias, ic_max, lw=2, color=max_c, alpha=alpha,
-                            label=f'SQ1 max, {label}' if last_fig else None)
+        
+        if np.nanmedian(ic_max) < 0: # negative output
+            min_c, max_c = max_c, min_c
+        
+        s1b_minmax_ax.plot(bias, np.abs(ic_min), lw=2, color=min_c, alpha=alpha)
+        s1b_minmax_ax.plot(bias, np.abs(ic_max), lw=2, color=max_c, alpha=alpha)
 
         if i == 0:
             pass
@@ -314,12 +344,10 @@ def plot_icminmax_col(last_fig, col, conditions, ctime=None,
     if not last_fig:
         return s1b_minmax_fig, s1b_minmax_ax
 
-    # leg = s1b_minmax_ax.legend(loc='upper left', fontsize=10)
-    # for lh in leg.legend_handles:
-    #     lh.set_alpha(1)
+    _icminmax_legend(s1b_minmax_ax, conditions, loc='upper left', fontsize=10)
     s1b_minmax_ax.xaxis.set_minor_locator(AutoMinorLocator(5))
 
-    s1b_minmax_ax.axvline(16000, c='gray', lw=1.)
+    # s1b_minmax_ax.axvline(12000, c='gray', lw=1.)
 
     def i2dac(x):
         return x / (3.7e-3)
@@ -332,7 +360,7 @@ def plot_icminmax_col(last_fig, col, conditions, ctime=None,
     uname = _label_icminmax_axes(s1b_minmax_ax, convert_units)
     s1b_minmax_ax.set_xlim(left=0)
     chip_suffix = '' if chip_num is None else f' Chip {chip_num}'
-    # s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + chip_suffix)
+    s1b_minmax_fig.suptitle('Ic Check Column ' + str(col) + chip_suffix)
     # s1b_minmax_fig.tight_layout()
     chip_filesuffix = '' if chip_num is None else f'_chip{chip_num}'
     savename = str(ctime) + '_icminmax_units' + uname + '_summary_col' + str(col) + chip_filesuffix + '.png'
